@@ -81,14 +81,14 @@ def import_to_neo4j(url, auth, data_dir, batch_size, dropall):
         logger.error("Cannot found 'metadata.json' in directory '%s'", data_dir)
         sys.exit(1)
 
-    with open(metadata_file) as f:
+    with open(metadata_file, encoding='UTF-8') as f:
         metadata = json.load(f)
 
-    query_tmpl = 'UNWIND {values} as data create (:%s {%s})'
+    query_tmpl = 'UNWIND $values as data create (:%s {%s})'
     for entity_type, entity_file in metadata["entity-data"].items():
         create_entity_index(client, entity_type, "id")
         query = ''
-        with open(os.path.join(data_dir, entity_file)) as f:
+        with open(os.path.join(data_dir, entity_file), encoding='UTF-8') as f:
             entities, reader = [], csv.DictReader(f)
             for row in reader:
                 entities.append(convert_csv_row(row))
@@ -112,7 +112,7 @@ def import_to_neo4j(url, auth, data_dir, batch_size, dropall):
                 logger.info("wrote %d entities in Neo4j server", len(entities))
 
     query_tmpl = (
-        'UNWIND {values} as data '
+        'UNWIND $values as data '
         'MATCH (a:%s {id:data.start_id}) '
         'MATCH (b:%s {id:data.end_id}) '
         'CREATE (a)-[:`%s`]->(b)'
@@ -120,7 +120,7 @@ def import_to_neo4j(url, auth, data_dir, batch_size, dropall):
     for relation_type, relation_file in metadata.get("relation-data", {}).items():
         start_type, relation, end_type = relation_type.split('|')
         query = query_tmpl % (start_type, end_type, relation)
-        with open(os.path.join(data_dir, relation_file)) as f:
+        with open(os.path.join(data_dir, relation_file), encoding='UTF-8') as f:
             relations, reader = [], csv.DictReader(f)
             for row in reader:
                 relations.append({
